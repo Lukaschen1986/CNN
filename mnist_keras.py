@@ -11,10 +11,14 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from keras.layers.normalization import BatchNormalization
+from keras.layers.core import Activation
 from keras import backend as K
 from keras.utils.np_utils import to_categorical
 from keras.regularizers import l1, l2
 from keras.optimizers import SGD, Adam
+from keras.utils import plot_model
+from keras.models import load_model
 
 from sklearn import datasets
 from sklearn import linear_model
@@ -60,40 +64,91 @@ y_predict = to_categorical(y_predict, outNum)
 
 # model
 model = Sequential()
+## 1
 model.add(Conv2D(input_shape=input_shape, # 当使用该层作为第一层时，应提供input_shape参数
                  data_format=K.image_data_format(),
-                 nb_filter=32, 
+                 nb_filter=64, 
                  kernel_size=(3,3), 
+                 strides=(1,1),
                  padding="same", # 补0策略，为“valid”, “same” 
-                 activation="relu",
+                 activation=None,
                  use_bias=True,
                  kernel_initializer="random_uniform", # random_normal
                  bias_initializer="zeros",
                  kernel_regularizer=l2(0.0001)))
-model.add(MaxPooling2D(pool_size=(2,2),
-                       strides=1,
-                       border_mode="same"))
+model.add(BatchNormalization(center=True, beta_initializer='zeros', scale=True, gamma_initializer='ones'))
+model.add(Activation("relu"))
+model.add(Dropout(rate=(1-keep_prob)))
+model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
+## 2
 model.add(Conv2D(nb_filter=64, 
                  kernel_size=(3,3), 
-                 padding="same", # 补0策略，为“valid”, “same” 
-                 activation="relu",
+                 strides=(1,1),
+                 padding="same",
+                 activation=None,
                  use_bias=True,
-                 kernel_initializer="random_uniform", # random_normal
+                 kernel_initializer="random_uniform", 
                  bias_initializer="zeros",
                  kernel_regularizer=l2(0.0001)))
+model.add(BatchNormalization(center=True, beta_initializer='zeros', scale=True, gamma_initializer='ones'))
+model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
+model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
+## 3
+model.add(Conv2D(nb_filter=32, 
+                 kernel_size=(3,3), 
+                 strides=(1,1),
+                 padding="same",
+                 activation=None,
+                 use_bias=True,
+                 kernel_initializer="random_uniform", 
+                 bias_initializer="zeros",
+                 kernel_regularizer=l2(0.0001)))
+model.add(BatchNormalization(center=True, beta_initializer='zeros', scale=True, gamma_initializer='ones'))
+model.add(Activation("relu"))
+model.add(Dropout(rate=(1-keep_prob)))
+model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
+## 4
 model.add(Flatten())
+## 5
 model.add(Dense(units=128, 
-                activation="relu",
+                activation=None,
                 use_bias=True,
                 kernel_initializer="random_uniform", # random_normal
                 bias_initializer="zeros",
                 kernel_regularizer=l2(0.0001)))
+model.add(BatchNormalization(center=True, beta_initializer='zeros', scale=True, gamma_initializer='ones'))
+model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
+## 6
+model.add(Dense(units=128, 
+                activation=None,
+                use_bias=True,
+                kernel_initializer="random_uniform", # random_normal
+                bias_initializer="zeros",
+                kernel_regularizer=l2(0.0001)))
+model.add(BatchNormalization(center=True, beta_initializer='zeros', scale=True, gamma_initializer='ones'))
+model.add(Activation("relu"))
+model.add(Dropout(rate=(1-keep_prob)))
+## 7
 model.add(Dense(units=outNum, activation='softmax'))
+## summary
+model.summary()
+plot_model(model, to_file="model.png", show_shapes=True, show_layer_names=True, rankdir='TB')
+## compile
 model.compile(loss="categorical_crossentropy", 
               optimizer=Adam(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=10**-8, decay=0.0),
               metrics=["accuracy"])
+## fit
 model.fit(X_train_reshape, y_train, batch_size=batch_size, epochs=epochs, verbose=1)
+## pred
 y_pred = model.predict_classes(X_predict_reshape)
 #sum(y_pred == y_predict) / len(y_predict) # 0.98619
+
+#score = model.evaluate(X_predict, y_predict, verbose=0)
+#print('Test score:', score[0])
+#print('Test accuracy:', score[1])
+#y_pred = model.predict_classes(X_predict_reshape)
+
+model.save(filepath="mnist-mpl.h5", overwrite=True, include_optimizer=True)
+model = load_model(filepath="mnist-mpl.h5", custom_objects=None, compile=True)
