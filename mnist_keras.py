@@ -76,7 +76,9 @@ model.add(Conv2D(input_shape=input_shape, # 当使用该层作为第一层时，
                  kernel_initializer="random_uniform", # random_normal
                  bias_initializer="zeros",
                  kernel_regularizer=l2(0.0001)))
-model.add(BatchNormalization(center=True, beta_initializer='zeros', scale=True, gamma_initializer='ones'))
+model.add(BatchNormalization(center=True, beta_initializer='zeros', 
+                             scale=True, gamma_initializer='ones', 
+                             epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
 model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
@@ -92,7 +94,7 @@ model.add(Conv2D(nb_filter=64,
                  kernel_regularizer=l2(0.0001)))
 model.add(BatchNormalization(center=True, beta_initializer='zeros', 
                              scale=True, gamma_initializer='ones', 
-                             epsilon=10**-8))
+                             epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
 model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
@@ -108,7 +110,7 @@ model.add(Conv2D(nb_filter=32,
                  kernel_regularizer=l2(0.0001)))
 model.add(BatchNormalization(center=True, beta_initializer='zeros', 
                              scale=True, gamma_initializer='ones', 
-                             epsilon=10**-8))
+                             epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
 model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
@@ -123,7 +125,7 @@ model.add(Dense(units=128,
                 kernel_regularizer=l2(0.0001)))
 model.add(BatchNormalization(center=True, beta_initializer='zeros', 
                              scale=True, gamma_initializer='ones', 
-                             epsilon=10**-8))
+                             epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
 ## 6
@@ -135,7 +137,7 @@ model.add(Dense(units=128,
                 kernel_regularizer=l2(0.0001)))
 model.add(BatchNormalization(center=True, beta_initializer='zeros', 
                              scale=True, gamma_initializer='ones', 
-                             epsilon=10**-8))
+                             epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
 ## 7
