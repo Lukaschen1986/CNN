@@ -96,7 +96,7 @@ model.add(BatchNormalization(center=True, beta_initializer='zeros',
                              epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
-model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
+model.add(MaxPooling2D(pool_size=(2,2), strides=2)) # pool_size=(3,3)
 ## 2
 model.add(Conv2D(nb_filter=32, 
                  kernel_size=(3,3), 
@@ -112,7 +112,7 @@ model.add(BatchNormalization(center=True, beta_initializer='zeros',
                              epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
-model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
+model.add(MaxPooling2D(pool_size=(2,2), strides=2))
 ## 3
 model.add(Conv2D(nb_filter=64, 
                  kernel_size=(3,3), 
@@ -128,7 +128,7 @@ model.add(BatchNormalization(center=True, beta_initializer='zeros',
                              epsilon=10**-8, momentum=0.5))
 model.add(Activation("relu"))
 model.add(Dropout(rate=(1-keep_prob)))
-model.add(MaxPooling2D(pool_size=(2,2), border_mode="same"))
+model.add(MaxPooling2D(pool_size=(2,2), strides=2))
 ## 4
 model.add(Conv2D(nb_filter=64, 
                  kernel_size=(3,3), 
