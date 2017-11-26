@@ -87,9 +87,9 @@ def Adam(w, dw, v_dw, s_dw, beta_1, beta_2, alpha, i):
 #def Adam(w, dw, v_dw, s_dw, beta_1, beta_2, alpha, i):
 #    v_dw = beta_1*v_dw + (1-beta_1)*dw
 #    s_dw = beta_2*s_dw + (1-beta_2)*(dw**2)
-#    v_dw_corr = v_dw/(1-beta_1**i)
-#    s_dw_corr = s_dw/(1-beta_2**i)
-#    w -= alpha * v_dw_corr/(np.sqrt(s_dw_corr)+10**-8)
+#    v_dw /= (1-beta_1**i)
+#    s_dw /= (1-beta_2**i)
+#    w -= alpha * v_dw/(np.sqrt(s_dw)+10**-8)
 #    return w, v_dw_corr, s_dw_corr
 
 # drop_out
