@@ -119,10 +119,9 @@ def conv_forward(x, w, b, conv_param):
     cache = (x, w, b, conv_param)
     return out, cache
 
-def conv_backward(dout, z_cache, a_cache, active_backward):
+def conv_backward(dout, cache):
     # dout = dout_bn_out2; z_cache = conv_cache2; a_cache = relu_cache2
-    x, w, b, conv_param = z_cache
-    z = a_cache
+    x, w, b, conv_param = cache
     N, C, H, W = x.shape
     F, _, HH, WW = w.shape
     S, P = conv_param["S"], conv_param["P"]
@@ -142,7 +141,7 @@ def conv_backward(dout, z_cache, a_cache, active_backward):
                 dw[f,:,:,:] += np.sum(x_pad_mask * dout[:,f,i,j][:,None,None,None], axis=0) 
                 # dw=矩阵原值乘以全局梯度值,参考 dw2 = a1.T.dot(delta2)
             for n in range(N):
-                dx_pad[n, :, i*S:i*S+HH, j*S:j*S+WW] += np.sum(dout[n,:,i,j][:,None,None,None] * w * active_backward(z[n,:,i,j][:,None,None,None]), axis=0) 
+                dx_pad[n, :, i*S:i*S+HH, j*S:j*S+WW] += np.sum(dout[n,:,i,j][:,None,None,None] * w, axis=0)
                 # 参考 delta1 = delta2.dot(w2.T) * active_dv(z1)
     dx = dx_pad[:, :, P:P+H, P:P+W] # 将dx_pad剔除padding的值传给dx得到最终dx
     return dx, dw, db
@@ -154,48 +153,60 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     momentum = bn_param["momentum"]
     running_mean = bn_param["running_mean"]
     running_var = bn_param["running_var"]
-    # 以通道数为列变量进行标准化
-    N, C, H, W = x.shape
-    x_reshape = x.reshape(N*H*W, C)
+    N, D = x.shape
     # 分train和test执行bn
     if mode == "train":
-        sample_mean = np.mean(x_reshape, axis=0, keepdims=True)
-        sample_var = np.var(x_reshape, axis=0, keepdims=True)
-        x_scale = (x_reshape - sample_mean) / (np.sqrt(sample_var + 10**-8))
+        sample_mean = np.mean(x, axis=0, keepdims=True)
+        sample_var = np.var(x, axis=0, keepdims=True)
+        x_scale = (x - sample_mean) / (np.sqrt(sample_var + 10**-8))
         out = gamma * x_scale + beta
         cache = (gamma, x, sample_mean, sample_var, x_scale)
         running_mean = momentum*running_mean + (1-momentum)*sample_mean
         running_var = momentum*running_var + (1-momentum)*sample_var
     elif mode == "test":
-        x_scale = (x_reshape - running_mean) / (np.sqrt(running_var + 10**-8))
+        x_scale = (x - running_mean) / (np.sqrt(running_var + 10**-8))
         out = gamma * x_scale + beta
     else:
         raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
     # Store the updated running means back into bn_param
     bn_param["running_mean"] = running_mean
     bn_param["running_var"] = running_var
-    # 把out的格式变回来
-    out = out.reshape(N, C, H, W)
     return out, cache
 
-def batchnorm_backward(dout, cache):
+def spatial_batchnorm_forward(x, gamma, beta, bn_param):
+  N, C, H, W = x.shape
+  temp_output, cache = batchnorm_forward(x.reshape(N*H*W, C), gamma, beta, bn_param) # 以通道数为列变量进行标准化
+  out = temp_output.reshape(N, C, H, W)
+  return out, cache
+
+def batchnorm_backward_alt(dout, cache):
     # dout = dout_max_out2; cache = bn_cache2
     gamma, x, sample_mean, sample_var, x_scale = cache
-#    N, _, _, _ = x.shape
-    N, C, H, W = dout.shape
-    dout_reshape = dout.reshape(N*H*W, C)
-    x_reshape = x.reshape(N*H*W, C)
+    N = x.shape[0]
+#    N, C, H, W = dout.shape
+#    dout_reshape = dout.reshape(N*H*W, C)
+#    x_reshape = x.reshape(N*H*W, C)
     # 根据公式推导
-    dx_normalized = gamma * dout_reshape
-    dsample_var = np.sum(dx_normalized * (x_reshape-sample_mean) * (-1.0/2) * (sample_var+10**-8)**(-3.0/2), axis=0, keepdims=True)
-    dsample_mean = np.sum(dx_normalized * (-1.0) / (np.sqrt(sample_var+10**-8)), axis=0, keepdims=True) + (1.0/N) * dsample_var * np.sum(-2*(x_reshape-sample_mean), axis = 0, keepdims=True)
-    dx_reshape = dx_normalized * 1.0/(np.sqrt(sample_var+10**-8)) + dsample_var*2.0*(x_reshape-sample_mean)/N + 1.0/N*dsample_mean
-    dgamma = np.sum(dout_reshape*x_scale, axis=0, keepdims=True)
-    dbeta = np.sum(dout_reshape, axis=0, keepdims=True)
-    # dx格式转换
-    dx = dx_reshape.reshape(N, C, H, W)
+    dx_normalized = gamma * dout
+    dsample_var = np.sum(dx_normalized * (x-sample_mean) * (-1.0/2) * (sample_var+10**-8)**(-3.0/2), axis=0, keepdims=True)
+    dsample_mean = np.sum(dx_normalized * (-1.0) / (np.sqrt(sample_var+10**-8)), axis=0, keepdims=True) + (1.0/N) * dsample_var * np.sum(-2*(x-sample_mean), axis = 0, keepdims=True)
+    dx = dx_normalized * 1.0/(np.sqrt(sample_var+10**-8)) + dsample_var*2.0*(x-sample_mean)/N + 1.0/N*dsample_mean
+    dgamma = np.sum(dout*x_scale, axis=0, keepdims=True)
+    dbeta = np.sum(dout, axis=0, keepdims=True)
     return dx, dgamma, dbeta
-    
+
+def spatial_batchnorm_backward(dout, cache):
+  N, C, H, W = dout.shape
+#  dout_flat = dout.transpose(0, 2, 3, 1).reshape(-1, C)
+  dout_flat = dout.reshape(N*H*W, C)
+  dx_flat, dgamma, dbeta = batchnorm_backward_alt(dout_flat, cache)
+  dx = dx_flat.reshape(N, C, H, W)
+  return dx, dgamma, dbeta
+#def spatial_batchnorm_backward(dout, cache):
+#  N,C,H,W = dout.shape
+#  dx_temp, dgamma, dbeta = batchnorm_backward_alt(dout.transpose(0,3,2,1).reshape((N*H*W,C)),cache)
+#  dx = dx_temp.reshape(N,W,H,C).transpose(0,3,2,1)
+#  return dx, dgamma, dbeta
 
 def relu_forward(x):
     out = np.maximum(0, x)
@@ -296,5 +307,3 @@ def softmax_loss(x, y, z_cache):
     db = np.sum(dout, axis=0, keepdims=True) # db5 = np.sum(delta5, axis=0, keepdims=True)
     return loss, dout, dw, db
 
-
-   
