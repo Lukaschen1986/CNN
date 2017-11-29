@@ -184,7 +184,7 @@ def relu_forward(x):
     return out, cache
 
 def relu_backward(dout, cache):
-    dx, x = None, cache
+    x = cache
     dx = dout * np.where(x < 0, 0, 1) # delta6.dot(w6.T) * active_dv(z5_bn)
     return dx
 
