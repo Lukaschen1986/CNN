@@ -150,10 +150,10 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     return out, cache
 
 def spatial_batchnorm_forward(x, gamma, beta, bn_param):
-  N, C, H, W = x.shape
-  temp_output, cache = batchnorm_forward(x.reshape(N*H*W, C), gamma, beta, bn_param) # 以通道数为列变量进行标准化
-  out = temp_output.reshape(N, C, H, W)
-  return out, cache
+    N, C, H, W = x.shape
+    temp_output, cache = batchnorm_forward(x.reshape(N*H*W, C), gamma, beta, bn_param) # 以通道数为列变量进行标准化
+    out = temp_output.reshape(N, C, H, W)
+    return out, cache
 
 def batchnorm_backward(dout, cache):
     gamma, x, sample_mean, sample_var, x_scale = cache
@@ -171,12 +171,12 @@ def batchnorm_backward(dout, cache):
     return dx, dgamma, dbeta
 
 def spatial_batchnorm_backward(dout, cache):
-  N, C, H, W = dout.shape
+    N, C, H, W = dout.shape
 #  dout_flat = dout.transpose(0, 2, 3, 1).reshape(-1, C)
-  dout_flat = dout.reshape(N*H*W, C)
-  dx_flat, dgamma, dbeta = batchnorm_backward(dout_flat, cache)
-  dx = dx_flat.reshape(N, C, H, W)
-  return dx, dgamma, dbeta
+    dout_flat = dout.reshape(N*H*W, C)
+    dx_flat, dgamma, dbeta = batchnorm_backward(dout_flat, cache)
+    dx = dx_flat.reshape(N, C, H, W)
+    return dx, dgamma, dbeta
 
 def relu_forward(x):
     out = np.maximum(0, x)
@@ -184,9 +184,9 @@ def relu_forward(x):
     return out, cache
 
 def relu_backward(dout, cache):
-  dx, x = None, cache
-  dx = dout * np.where(x < 0, 0, 1) # delta6.dot(w6.T) * active_dv(z5_bn)
-  return dx
+    dx, x = None, cache
+    dx = dout * np.where(x < 0, 0, 1) # delta6.dot(w6.T) * active_dv(z5_bn)
+    return dx
 
 def dropout_forward(x, dropout_param):
     keep_prob, mode = dropout_param["keep_prob"], dropout_param["mode"]
