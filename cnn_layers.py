@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # https://mp.weixin.qq.com/s/epouHiy3QRTrU4EanCrzLA
+# https://www.zhihu.com/question/38102762/answer/85238569
+# http://blog.csdn.net/u014722627/article/details/60574260
+# http://blog.csdn.net/u013473520/article/details/50730620
 from __future__ import division
 from __future__ import print_function
 import os
