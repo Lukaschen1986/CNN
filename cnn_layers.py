@@ -97,12 +97,8 @@ def conv_forward(x, w, b, conv_param):
     return out, cache
 
 def conv_backward(dout, cache):
-#    dout=da; cache=conv_cache
     x, w, b, conv_param = cache
     w_rot = filter_rot(w) # 按公式卷积翻转180度
-    w[0][0]
-    w_rot[0][0]
-    
     N, C, H, W = x.shape
     F, _, HH, WW = w.shape
     S, P = conv_param["S"], conv_param["P"]
