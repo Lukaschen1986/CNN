@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# https://mp.weixin.qq.com/s/epouHiy3QRTrU4EanCrzLA
 from __future__ import division
 from __future__ import print_function
 import os
@@ -57,13 +58,13 @@ def filter_init(x, F, HH, WW):
     b = np.zeros((F))
     return w, b
 
-def filter_flip(w):
+def filter_rot(w):
     F, C, _, _ = w.shape
-    w_flip = copy.deepcopy(w)
+    w_rot = copy.deepcopy(w)
     for f in range(F):
         for c in range(C):
-            w_flip[f,c,:,:] = np.flip(np.flip(w[f,c,:,:], axis=1), axis=0)
-    return w_flip
+            w_rot[f,c,:,:] = np.flip(np.flip(w[f,c,:,:], axis=1), axis=0)
+    return w_rot
 
 def get_padding(x, w, S):
     _, _, H, _ = x.shape
@@ -93,7 +94,12 @@ def conv_forward(x, w, b, conv_param):
     return out, cache
 
 def conv_backward(dout, cache):
+#    dout=da; cache=conv_cache
     x, w, b, conv_param = cache
+    w_rot = filter_rot(w) # 按公式卷积翻转180度
+    w[0][0]
+    w_rot[0][0]
+    
     N, C, H, W = x.shape
     F, _, HH, WW = w.shape
     S, P = conv_param["S"], conv_param["P"]
@@ -113,11 +119,11 @@ def conv_backward(dout, cache):
                 dw[f,:,:,:] += np.sum(x_pad_mask * dout[:,f,i,j][:,None,None,None], axis=0) 
                 # 计算dw，dw=矩阵原值乘以全局梯度值,参考 dw2 = a1.T.dot(delta2)
             for n in range(N):
-                dx_pad[n, :, i*S:i*S+HH, j*S:j*S+WW] += np.sum(dout[n,:,i,j][:,None,None,None] * w, axis=0)
+                dx_pad[n, :, i*S:i*S+HH, j*S:j*S+WW] += np.sum(dout[n,:,i,j][:,None,None,None] * w_rot, axis=0)
                 # 计算全局梯度dout，参考 delta1 = delta2.dot(w2.T)
+    dw = filter_rot(dw) # 按公式dw翻转180度
     dx = dx_pad[:, :, P:P+H, P:P+W] # 将dx_pad剔除padding的值传给dx得到最终的dx
     return dx, dw, db
-    
     
 def batchnorm_forward(x, gamma, beta, bn_param):
     mode = bn_param["mode"]
@@ -329,3 +335,4 @@ def conv_bn_relu_pool_backward(dout, cache):
     da, dgamma, dbeta = spatial_batchnorm_backward(dan, bn_cache)
     dx, dw, db = conv_backward(da, conv_cache)
     return dx, dw, db, dgamma, dbeta
+
