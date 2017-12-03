@@ -248,8 +248,7 @@ def flatten(x):
     return out
 
 def affine_init(x, units):
-    N, C, H, W = x.shape
-    P = C*H*W
+    _, P = x.shape
     w = np.random.randn(P, units).astype("float32") * np.sqrt(2.0/P)
     b = np.zeros((1, units), dtype="float32")
     return w, b
@@ -313,8 +312,7 @@ def conv_bn_relu_pool_forward(x, w, b, gamma, beta, conv_param, bn_param, pool_p
     return out, cache
 
 def affine_relu_forward(x, w, b, dropout_param):
-    x_flatten = flatten(x)
-    a, fc_cache = affine_forward(x_flatten, w, b)
+    a, fc_cache = affine_forward(x, w, b)
     relu_out, relu_cache = relu_forward(a)
     out, drop_cache = dropout_forward(relu_out, dropout_param)
     cache = (fc_cache, relu_cache, drop_cache)
