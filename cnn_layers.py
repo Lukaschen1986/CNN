@@ -304,19 +304,24 @@ def Adam(w, dw, config=None):
     return w, config
 
 def conv_bn_relu_pool_forward(x, w, b, gamma, beta, conv_param, bn_param, pool_param):
-    a, conv_cache = conv_forward(x, w, b, conv_param)
-    an, bn_cache = spatial_batchnorm_forward(a, gamma, beta, bn_param)
-    s, relu_cache = relu_forward(an)
-    out, pool_cache = maxPooling_forward(s, pool_param)
+    z, conv_cache = conv_forward(x, w, b, conv_param)
+    zn, bn_cache = spatial_batchnorm_forward(z, gamma, beta, bn_param)
+    a, relu_cache = relu_forward(zn)
+    out, pool_cache = maxPooling_forward(a, pool_param)
     cache = (conv_cache, bn_cache, relu_cache, pool_cache)
     return out, cache
 
 def affine_relu_forward(x, w, b, dropout_param):
-    a, fc_cache = affine_forward(x, w, b)
-    relu_out, relu_cache = relu_forward(a)
-    out, drop_cache = dropout_forward(relu_out, dropout_param)
+    z, fc_cache = affine_forward(x, w, b)
+    a, relu_cache = relu_forward(z)
+    out, drop_cache = dropout_forward(a, dropout_param)
     cache = (fc_cache, relu_cache, drop_cache)
     return out, cache
+
+def affine_softmax_loss(x, w, b, y):
+    z, fc_cache = affine_forward(x, w, b)
+    loss, dx = softmax_loss(z, y)
+    return loss, dx
 
 def affine_relu_backward(dout, cache):
     fc_cache, relu_cache, drop_cache = cache
@@ -327,9 +332,9 @@ def affine_relu_backward(dout, cache):
 
 def conv_bn_relu_pool_backward(dout, cache):
     conv_cache, bn_cache, relu_cache, pool_cache = cache
-    ds = maxPooling_backward(dout, pool_cache)
-    dan = relu_backward(ds, relu_cache)
-    da, dgamma, dbeta = spatial_batchnorm_backward(dan, bn_cache)
-    dx, dw, db = conv_backward(da, conv_cache)
+    da = maxPooling_backward(dout, pool_cache)
+    dzn = relu_backward(da, relu_cache)
+    dz, dgamma, dbeta = spatial_batchnorm_backward(dzn, bn_cache)
+    dx, dw, db = conv_backward(dz, conv_cache)
     return dx, dw, db, dgamma, dbeta
 
