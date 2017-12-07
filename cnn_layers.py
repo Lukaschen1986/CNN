@@ -59,9 +59,8 @@ def filter_init(x, F, HH, WW):
     for f in range(F):
         w[f,:,:,:] = np.random.randn(C, HH, WW) * 0.01
     b = np.zeros((F), dtype="float32")
-    gamma = np.ones((1, F), dtype="float32")
-    beta = np.zeros((1, F), dtype="float32")
-    running_mean = running_var = np.zeros((1, F), dtype="float32")
+    gamma = running_var = np.ones((1, F), dtype="float32")
+    beta = running_mean = np.zeros((1, F), dtype="float32")
     return w, b, gamma, beta, running_mean, running_var
 
 def filter_rot(w):
