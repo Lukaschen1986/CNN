@@ -58,8 +58,11 @@ def filter_init(x, F, HH, WW):
     w = np.zeros((F, C, HH, WW), dtype="float32")
     for f in range(F):
         w[f,:,:,:] = np.random.randn(C, HH, WW) * 0.01
-    b = np.zeros((F))
-    return w, b
+    b = np.zeros((F), dtype="float32")
+    gamma = np.ones((1, F), dtype="float32")
+    beta = np.zeros((1, F), dtype="float32")
+    running_mean = running_var = np.zeros((1, F), dtype="float32")
+    return w, b, gamma, beta, running_mean, running_var
 
 def filter_rot(w):
     F, C, _, _ = w.shape
@@ -278,7 +281,6 @@ def softmax_loss(x, y):
     dx[np.arange(N), y] -= 1 # delta5[range(n_batch), y_batch] -= 1
     return loss, dx
 
-
 def SGD(w, dw, config=None):
     if config is None: config = {}
     config.setdefault("alpha", 0.01) # setdefault: 一旦被更新新值，迭代执行setdefault将自动忽略初始值
@@ -323,6 +325,11 @@ def affine_softmax_loss(x, w, b, y):
     loss, dx = softmax_loss(z, y)
     return loss, dx
 
+def affine_softmax_backward(dout, cache):
+    fc_cache = cache
+    dx, dw, db = affine_backward(dout, fc_cache)
+    return dx, dw, db
+
 def affine_relu_backward(dout, cache):
     fc_cache, relu_cache, drop_cache = cache
     dt = dropout_backward(dout, drop_cache)
@@ -338,3 +345,12 @@ def conv_bn_relu_pool_backward(dout, cache):
     dx, dw, db = conv_backward(dz, conv_cache)
     return dx, dw, db, dgamma, dbeta
 
+def batch_func(x, y, batch_size):
+    N, _ = x.shape
+    batchs = N // batch_size
+    for i in range(batchs):
+        begin = batch_size * i
+        end = batch_size + begin
+        x_batch = x[begin:end]
+        y_batch = y[begin:end]
+        yield x_batch, y_batch
