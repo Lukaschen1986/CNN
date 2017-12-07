@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import os
@@ -52,7 +53,7 @@ def load_CIFAR_batch(path, data_format):
         y = np.array(y)
         return X, y, label
     
-X_1, y_1, label_1 = load_CIFAR_batch("D:\\file\\Py_project\\CNN\\cifar-10-python\\data_batch_1", "channels_first")
+X_1, y_1, label_1 = load_CIFAR_batch("D:\\my_project\\Python_Project\\test\\NN\\cifar-10-python\\data_batch_1", "channels_first")
 #X_2, y_2, label_2 = load_CIFAR_batch("D:\\file\\Py_project\\CNN\\cifar-10-python\\data_batch_2", "channels_first")
 #X_3, y_3, label_3 = load_CIFAR_batch("D:\\file\\Py_project\\CNN\\cifar-10-python\\data_batch_3", "channels_first")
 #X_4, y_4, label_4 = load_CIFAR_batch("D:\\file\\Py_project\\CNN\\cifar-10-python\\data_batch_4", "channels_first")
@@ -86,97 +87,79 @@ dropout_param = {"mode":mode, "keep_prob": keep_prob}
 # epoch1
 # 1
 filters1 = 32
-w1, b1 = cl.filter_init(x, F=filters1, HH=5, WW=5)
+w1, b1, gamma1, beta1, running_mean1, running_var1 = cl.filter_init(x, F=filters1, HH=5, WW=5)
 stride = 1; padding = cl.get_padding(x, w1, stride)
 conv_param1 = {"S":stride, "P":padding}
-gamma1 = np.ones((1, filters1), dtype="float32")
-beta1 = np.zeros((1, filters1), dtype="float32")
-running_mean1 = running_var1 = np.zeros((1, filters1), dtype="float32")
 bn_param1 = {"mode":mode, "momentum":momentum, "running_mean":running_mean1, "running_var":running_var1}
 
 out1, cache1 = cl.conv_bn_relu_pool_forward(x, w1, b1, gamma1, beta1, conv_param1, bn_param1, pool_param)
+out1.shape # (1000, 32, 16, 16)
 
 # 2
 filters2 = 64
-w2, b2 = cl.filter_init(out1, F=filters2, HH=3, WW=3)
+w2, b2, gamma2, beta2, running_mean2, running_var2 = cl.filter_init(out1, F=filters2, HH=3, WW=3)
 stride = 1; padding = cl.get_padding(out1, w2, stride)
 conv_param2 = {"S":stride, "P":padding}
-gamma2 = np.ones((1, filters2), dtype="float32")
-beta2 = np.zeros((1, filters2), dtype="float32")
-running_mean2 = running_var2 = np.zeros((1, filters2), dtype="float32")
 bn_param2 = {"mode":mode, "momentum":momentum, "running_mean":running_mean2, "running_var":running_var2}
 
 out2, cache2 = cl.conv_bn_relu_pool_forward(out1, w2, b2, gamma2, beta2, conv_param2, bn_param2, pool_param)
+out2.shape # (1000, 64, 8, 8)
 
 # 3
 filters3 = 128
-w3, b3 = cl.filter_init(out2, F=filters3, HH=3, WW=3)
+w3, b3, gamma3, beta3, running_mean3, running_var3 = cl.filter_init(out2, F=filters3, HH=3, WW=3)
 stride = 1; padding = cl.get_padding(out2, w3, stride)
 conv_param3 = {"S":stride, "P":padding}
-gamma3 = np.ones((1, filters3), dtype="float32")
-beta3 = np.zeros((1, filters3), dtype="float32")
-running_mean3 = running_var3 = np.zeros((1, filters3), dtype="float32")
 bn_param3 = {"mode":mode, "momentum":momentum, "running_mean":running_mean3, "running_var":running_var3}
 
 out3, cache3 = cl.conv_bn_relu_pool_forward(out2, w3, b3, gamma3, beta3, conv_param3, bn_param3, pool_param)
+out3.shape # (1000, 128, 4, 4)
 
 # 4
-out3 = cl.flatten(out3)
+out3 = cl.flatten(out3) # (1000, 2048)
 w4, b4 = cl.affine_init(out3, units=128)
 out4, cache4 = cl.affine_relu_forward(out3, w4, b4, dropout_param)
+out4.shape # (1000, 128)
 
 # 5
 w5, b5 = cl.affine_init(out4, units=10)
-out5, cache5 = cl.affine_relu_forward(out4, w5, b5, dropout_param)
+loss, dout5, cache5 = cl.affine_softmax_loss(out4, w5, b5, y)
+cache5.shape
 
-# dout5
-loss, dout5 = cl.softmax_loss(out5, y)
 loss_res.append(loss)
 print(loss_res)
 
 # dout4
-dout4, dw5, db5 = cl.affine_relu_backward(dout5, cache5)
-
+dout4, dw5, db5 = cl.affine_softmax_backward(dout5, cache5)
 # dout3
 dout3, dw4, db4 = cl.affine_relu_backward(dout4, cache4)
-
 # dout2
 dout2, dw3, db3, dgamma3, dbeta3 = cl.conv_bn_relu_pool_backward(dout3, cache3)
-
 # dout1
 dout1, dw2, db2, dgamma2, dbeta2 = cl.conv_bn_relu_pool_backward(dout2, cache2)
-
 # dout0
 dout0, dw1, db1, dgamma1, dbeta1 = cl.conv_bn_relu_pool_backward(dout1, cache1)
-
 # opti
 w5, w5_config = cl.Adam(w5, dw5); b5, b5_config = cl.Adam(b5, db5)
-
 w4, w4_config = cl.Adam(w4, dw4); b4, b4_config = cl.Adam(b4, db4)
-
 w3, w3_config = cl.Adam(w3, dw3); b3, b3_config = cl.Adam(b3, db3)
 gamma3, gamma3_config = cl.Adam(gamma3, dgamma3); beta3, beta3_config = cl.Adam(beta3, dbeta3)
-
 w2, w2_config = cl.Adam(w2, dw2); b2, b2_config = cl.Adam(b2, db2)
 gamma2, gamma2_config = cl.Adam(gamma2, dgamma2); beta2, beta2_config = cl.Adam(beta2, dbeta2)
-
 w1, w1_config = cl.Adam(w1, dw1); b1, b1_config = cl.Adam(b1, db1)
 gamma1, gamma1_config = cl.Adam(gamma1, dgamma1); beta1, beta1_config = cl.Adam(beta1, dbeta1)
 
-
-# epoch2
+# epoch 2 to n
 out1, cache1 = cl.conv_bn_relu_pool_forward(x, w1, b1, gamma1, beta1, conv_param1, bn_param1, pool_param)
 out2, cache2 = cl.conv_bn_relu_pool_forward(out1, w2, b2, gamma2, beta2, conv_param2, bn_param2, pool_param)
 out3, cache3 = cl.conv_bn_relu_pool_forward(out2, w3, b3, gamma3, beta3, conv_param3, bn_param3, pool_param)
 out3 = cl.flatten(out3)
 out4, cache4 = cl.affine_relu_forward(out3, w4, b4, dropout_param)
-out5, cache5 = cl.affine_relu_forward(out4, w5, b5, dropout_param)
-
-loss, dout5 = cl.softmax_loss(out5, y)
+loss, dout5, cache5 = cl.affine_softmax_loss(out4, w5, b5, y)
 loss_res.append(loss)
 print(loss_res)
 
-dout4, dw5, db5 = cl.affine_relu_backward(dout5, cache5)
+dout4, dw5, db5 = cl.affine_softmax_backward(dout5, cache5)
 dout3, dw4, db4 = cl.affine_relu_backward(dout4, cache4)
 dout2, dw3, db3, dgamma3, dbeta3 = cl.conv_bn_relu_pool_backward(dout3, cache3)
 dout1, dw2, db2, dgamma2, dbeta2 = cl.conv_bn_relu_pool_backward(dout2, cache2)
@@ -190,4 +173,3 @@ w2, w2_config = cl.Adam(w2, dw2, w2_config); b2, b2_config = cl.Adam(b2, db2, b2
 gamma2, gamma2_config = cl.Adam(gamma2, dgamma2, gamma2_config); beta2, beta2_config = cl.Adam(beta2, dbeta2, beta2_config)
 w1, w1_config = cl.Adam(w1, dw1, w1_config); b1, b1_config = cl.Adam(b1, db1, b1_config)
 gamma1, gamma1_config = cl.Adam(gamma1, dgamma1, gamma1_config); beta1, beta1_config = cl.Adam(beta1, dbeta1, beta1_config)
-
