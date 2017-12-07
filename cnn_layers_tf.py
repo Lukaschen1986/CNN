@@ -2,6 +2,9 @@
 from __future__ import division # 精确除法
 from __future__ import print_function
 import tensorflow as tf
+import numpy as np
+
+one_hot = lambda y: np.eye(len(set(y)), dtype=np.float32)[y]
 
 def conv_bn_relu_pool(x, filters, kernel_size, conv_strides, kernel_initializer, pool_size, pool_strides, trainable):
     z = tf.layers.conv2d(x, 
@@ -187,7 +190,7 @@ def metrics(probs, y):
     return accu
 
 def batch_func(x, y, batch_size):
-    N, _ = x.shape
+    N = x.shape[0]
     batchs = N // batch_size
     for i in range(batchs):
         begin = batch_size * i
