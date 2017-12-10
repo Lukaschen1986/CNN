@@ -6,7 +6,7 @@ import numpy as np
 
 one_hot = lambda y: np.eye(len(set(y)), dtype=np.float32)[y]
 
-def conv_bn_relu_pool(x, filters, kernel_size, conv_strides, kernel_initializer, pool_size, pool_strides, trainable):
+def conv_bn_relu_pool(x, filters, kernel_size, conv_strides, kernel_initializer, kernel_regularizer, keep_prob, pool_size, pool_strides, trainable):
     z = tf.layers.conv2d(x, 
                          filters, 
                          kernel_size, 
@@ -30,13 +30,15 @@ def conv_bn_relu_pool(x, filters, kernel_size, conv_strides, kernel_initializer,
                                        moving_variance_initializer=tf.ones_initializer(), 
                                        trainable=trainable)
     a = tf.nn.relu(zn)
-    out = tf.layers.max_pooling2d(a, 
+    ad = tf.layers.dropout(a, rate=1-keep_prob)
+    out = tf.layers.max_pooling2d(ad, 
                                   pool_size, 
                                   strides=pool_strides)
     return out
 # kernel_initializer: tf.random_normal_initializer(); tf.truncated_normal_initializer(); tf.random_uniform_initializer()
 
-def conv_bn_relu_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializer, pool_size, pool_strides, trainable):
+#filters=32; kernel_size=(3,3); conv_strides=1; trainable=True
+def conv_bn_relu_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializer, kernel_regularizer, keep_prob, pool_size, pool_strides, trainable):
     z1 = tf.layers.conv2d(x, 
                          filters, 
                          kernel_size, 
@@ -60,7 +62,8 @@ def conv_bn_relu_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializ
                                        moving_variance_initializer=tf.ones_initializer(), 
                                        trainable=trainable)
     a1 = tf.nn.relu(zn1)
-    z2 = tf.layers.conv2d(a1, 
+    ad1 = tf.layers.dropout(a1, rate=1-keep_prob)
+    z2 = tf.layers.conv2d(ad1, 
                          filters, 
                          kernel_size, 
                          conv_strides, 
@@ -83,13 +86,19 @@ def conv_bn_relu_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializ
                                        moving_variance_initializer=tf.ones_initializer(), 
                                        trainable=trainable)
     a2 = tf.nn.relu(zn2)
-    out = tf.layers.max_pooling2d(a2, 
+    ad2 = tf.layers.dropout(a2, rate=1-keep_prob)
+    out = tf.layers.max_pooling2d(ad2, 
                                   pool_size, 
                                   strides=pool_strides)
     return out
 
+#def flatten(x):
+#    out = tf.layers.flatten(x)
+#    return out
+
 def flatten(x):
-    out = tf.layers.flatten(x)
+    _, H, W, C = x.shape
+    out = tf.reshape(x, shape=[-1,int(H*W*C)])
     return out
 
 def affine_bn_relu(x, units, kernel_initializer, kernel_regularizer, keep_prob, trainable):
