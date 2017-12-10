@@ -16,21 +16,6 @@ import cv2 as cv
 from PIL import Image
 from keras.preprocessing import image
 
-# resize, flip, toarray
-def img_resize(filename, height, width):
-    pic = image.load_img(filename)
-    pic_array = image.img_to_array(pic, "channels_last").astype("uint8")
-    pic_resize = cv.resize(pic_array, dsize=(height,width))
-    pic_update = Image.fromarray(pic_resize)
-    return pic_update.save(".\\" + filename)
-
-def img_flip(filename, flipCode):
-    pic = image.load_img(filename)
-    pic_array = image.img_to_array(pic, "channels_last").astype("uint8")
-    pic_flip = cv.flip(pic_array, flipCode) # flipCode>0 水平； flipCode=0 垂直； flipCode<0 水平+垂直
-    pic_update = Image.fromarray(pic_flip)
-    return pic_update.save(".\\flip_" + filename)
-
 def img_batch_update(path, height, width, flipCode):
     os.chdir(path)
     for filename in os.listdir():
