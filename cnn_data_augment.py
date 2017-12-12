@@ -27,7 +27,7 @@ def pic_resize(filename, height, width):
 #    pic = image.load_img(filename) # 载入图片
     pic = Image.open(filename, mode="r") # 载入图片
     pic_update = pic.resize((height, width), Image.BICUBIC)
-    return pic_update.save("./resize_" + filename) # 保存
+    return pic_update.save(filename) # 保存
 
 #def img_rotate(filename, angle=20, scale=1):
 #    pic = image.load_img(filename) # 载入图片
@@ -57,7 +57,7 @@ def pic_crop(filename, init_range, crop_size):
     assert y0 <= W and y1 <= H, "pic_update is cross the border"
     random_region = (x0, y0, x1, y1)
     pic_update = pic.crop(random_region)
-    return pic_update.save(".\\crop_" + filename) # 保存
+    return pic_update.save("./crop_" + filename) # 保存
 
 #def img_sub(filename, shrink_rate, HH, WW):
 #    pic = image.load_img(filename) # 载入图片
@@ -111,7 +111,7 @@ def pic_colorShift(filename):
     pic_update = ImageEnhance.Contrast(pic_update).enhance(random_factor)  # 调整图像对比度
     random_factor = np.random.randint(0, 31) / 10
     pic_update = ImageEnhance.Sharpness(pic_update).enhance(random_factor) # 调整图像锐度
-    return pic_update.save(".\\shift_" + filename) # 保存   
+    return pic_update.save("./shift_" + filename) # 保存   
 
 # 高斯噪声
 def pic_gaussNois(filename, mean, std):
@@ -131,18 +131,18 @@ def pic_gaussNois(filename, mean, std):
         pic_update = np.concatenate((pic_update, pic_C_update), axis=0)
     pic_update = pic_update[1:].transpose(1,2,0).astype("uint8")
     pic_update = Image.fromarray(pic_update) # 重新拼成图片
-    return pic_update.save(".\\gaussNois_" + filename) # 保存   
+    return pic_update.save("./gaussNois_" + filename) # 保存
       
 # 图片翻转
-def img_flip(filename, flipCode):
+def pic_flip(filename, flipCode):
     pic = Image.open(filename, mode="r") # 载入图片
     pic_array = image.img_to_array(pic, "channels_last").astype("uint8") # 转换成像素矩阵
     pic_flip = cv.flip(pic_array, flipCode) # 镜像， flipCode>0 水平； flipCode=0 垂直； flipCode<0 水平+垂直
     pic_update = Image.fromarray(pic_flip) # 重新拼成图片
-    return pic_update.save(".\\flip_" + filename) # 保存
+    return pic_update.save("./flip_" + filename) # 保存
     
 # 图片模糊
-def img_blur(filename, ksize):
+def pic_blur(filename, ksize):
     pic = Image.open(filename, mode="r") # 载入图片
     pic_array = image.img_to_array(pic, "channels_last").astype("uint8") # 转换成像素矩阵
     pic_blur = cv.blur(pic_array, ksize) # 模糊处理
@@ -159,7 +159,7 @@ def pca(x):
     S, V = np.linalg.eig(x_cov)
     return S, V
 
-def img_pca(filename, mean, std):
+def pic_pca(filename, mean, std):
     pic = Image.open(filename, mode="r") # 载入图片
     pic_array = image.img_to_array(pic, "channels_first").astype("float32") # 转换成像素矩阵
     # reshape
@@ -177,3 +177,30 @@ def img_pca(filename, mean, std):
     pic_array_new = pic_array.transpose(1,2,0).astype("uint8")
     pic_update = Image.fromarray(pic_array_new) # 重新拼成图片
     return pic_update.save("./pca_" + filename) # 保存
+
+def data_augment(path, config):
+    if config is None: config = {}
+    config.setdefault("height", 448)
+    config.setdefault("width", 448)
+    config.setdefault("rotate_from", -45)
+    config.setdefault("rotate_to", 45)
+    config.setdefault("init_range", 32)
+    config.setdefault("crop_size", 224)
+    config.setdefault("mean_1", 3)
+    config.setdefault("std_1", 3)
+    config.setdefault("flipCode", 1)
+    config.setdefault("ksize", (5,5))
+    config.setdefault("mean_2", 0)
+    config.setdefault("std_2", 0.1)
+    
+    os.chdir(path)
+    for filename in os.listdir(): pic_resize(filename, config["height"], config["width"])
+    for filename in os.listdir(): pic_flip(filename, config["flipCode"])
+    for filename in os.listdir(): pic_blur(filename, config["ksize"])
+    for filename in os.listdir(): pic_gaussNois(filename, config["mean_1"], config["std_1"])
+    for filename in os.listdir(): pic_rotate(filename, config["rotate_from"], config["rotate_to"])
+    for filename in os.listdir(): pic_crop(filename, config["init_range"], config["crop_size"])
+    for filename in os.listdir(): pic_colorShift(filename)
+    for filename in os.listdir(): pic_pca(filename, config["mean_2"], config["std_2"])
+
+data_augment(path="D:/my_project/Python_Project/test/DL/test_picture/sample", config=None)
