@@ -207,3 +207,20 @@ def batch_func(x, y, batch_size):
         x_batch = x[begin:end]
         y_batch = y[begin:end]
         yield x_batch, y_batch
+
+def img_batch_toarray(path, channel, height, width, data_format, y_label):
+    assert isinstance(y_label, int), "y_label must astype int"
+    os.chdir(path)
+    if data_format == "channels_first": x = np.zeros((channel, height, width), dtype="float32")
+    if data_format == "channels_last": x = np.zeros((height, width, channel), dtype="float32")
+    x = np.expand_dims(x, axis=0)
+    for filename in os.listdir():
+#        filename = "1408154505_room_0.jpg"
+        pic = Image.open(filename, mode="r")  # keras load style
+        pic_array = image.img_to_array(pic, data_format).astype("float32") # data_format="channels_first"
+        pic_array = np.expand_dims(pic_array, axis=0)
+        x = np.concatenate((x, pic_array), axis=0)
+    x = x[1:] # 删除第一个0数据
+    y = np.tile(y_label, len(x)).astype("int32")
+    data = {"target":x, "label":y}
+    return data    
