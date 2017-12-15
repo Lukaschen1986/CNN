@@ -6,7 +6,7 @@ import numpy as np
 
 one_hot = lambda y: np.eye(len(set(y)), dtype=np.float32)[y]
 
-def conv_bn_relu_pool(x, filters, kernel_size, conv_strides, kernel_initializer, kernel_regularizer, keep_prob, pool_size, pool_strides, trainable):
+def conv_bn_active_pool(x, filters, kernel_size, conv_strides, kernel_initializer, kernel_regularizer, active_format, keep_prob, pool_format, pool_size, pool_strides, trainable):
     z = tf.layers.conv2d(x, 
                          filters, 
                          kernel_size, 
@@ -29,16 +29,36 @@ def conv_bn_relu_pool(x, filters, kernel_size, conv_strides, kernel_initializer,
                                        moving_mean_initializer=tf.zeros_initializer(), 
                                        moving_variance_initializer=tf.ones_initializer(), 
                                        trainable=trainable)
-    a = tf.nn.relu(zn)
+    if active_format == "relu": 
+        a = tf.nn.relu(zn)
+    elif active_format == "tanh": 
+        a = tf.nn.tanh(zn)
+    elif active_format == "leaky_relu":
+        a = tf.nn.leaky_relu(zn)
+    else:
+        raise ValueError("active_format must in ('relu','tanh','leaky_relu')")
+    
     ad = tf.layers.dropout(a, rate=1-keep_prob)
-    out = tf.layers.max_pooling2d(ad, 
-                                  pool_size, 
-                                  strides=pool_strides)
+    if pool_format == "max":
+        out = tf.layers.max_pooling2d(ad, 
+                                      pool_size, 
+                                      strides=pool_strides) # 2:无重叠
+    elif pool_format == "avg":
+        out = tf.layers.average_pooling2d(ad,
+                                          pool_size,
+                                          strides=pool_strides) # 1:有重叠,考虑邻近像素的对特征的影响
+    else:
+        raise ValueError("pool_format must in ('max' or 'avg')")
     return out
-# kernel_initializer: tf.random_normal_initializer(); tf.truncated_normal_initializer(); tf.random_uniform_initializer()
+'''
+tf.random_normal_initializer(mean=0.0, stddev=1.0) (0.0001, 0.01, 0.01, 0.1, 0.1)
+Alex选择了高斯分布生成零均值、小标准差的随机值作为初始化W，并且逐层加大标准差，使得W有弹性
+tf.truncated_normal_initializer(mean=0.0, stddev=1.0)
+tf.random_uniform_initializer(minval=0, maxval=None)
+'''
 
 #filters=32; kernel_size=(3,3); conv_strides=1; trainable=True
-def conv_bn_relu_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializer, kernel_regularizer, keep_prob, pool_size, pool_strides, trainable):
+def conv_bn_active_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializer, kernel_regularizer, keep_prob, active_format, pool_format, pool_size, pool_strides, trainable):
     z1 = tf.layers.conv2d(x, 
                          filters, 
                          kernel_size, 
@@ -61,7 +81,15 @@ def conv_bn_relu_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializ
                                        moving_mean_initializer=tf.zeros_initializer(), 
                                        moving_variance_initializer=tf.ones_initializer(), 
                                        trainable=trainable)
-    a1 = tf.nn.relu(zn1)
+    if active_format == "relu": 
+        a1 = tf.nn.relu(zn1)
+    elif active_format == "tanh": 
+        a1 = tf.nn.tanh(zn1)
+    elif active_format == "leaky_relu":
+        a1 = tf.nn.leaky_relu(zn1)
+    else:
+        raise ValueError("active_format must in ('relu','tanh','leaky_relu')")
+        
     ad1 = tf.layers.dropout(a1, rate=1-keep_prob)
     z2 = tf.layers.conv2d(ad1, 
                          filters, 
@@ -85,11 +113,26 @@ def conv_bn_relu_x2_pool(x, filters, kernel_size, conv_strides, kernel_initializ
                                        moving_mean_initializer=tf.zeros_initializer(), 
                                        moving_variance_initializer=tf.ones_initializer(), 
                                        trainable=trainable)
-    a2 = tf.nn.relu(zn2)
+    if active_format == "relu": 
+        a2 = tf.nn.relu(zn2)
+    elif active_format == "tanh": 
+        a2 = tf.nn.tanh(zn2)
+    elif active_format == "leaky_relu":
+        a2 = tf.nn.leaky_relu(zn2)
+    else:
+        raise ValueError("active_format must in ('relu','tanh','leaky_relu')")
+        
     ad2 = tf.layers.dropout(a2, rate=1-keep_prob)
-    out = tf.layers.max_pooling2d(ad2, 
-                                  pool_size, 
-                                  strides=pool_strides)
+    if pool_format == "max":
+        out = tf.layers.max_pooling2d(ad2, 
+                                      pool_size, 
+                                      strides=pool_strides) # 2:无重叠
+    elif pool_format == "avg":
+        out = tf.layers.average_pooling2d(ad2,
+                                          pool_size,
+                                          strides=pool_strides) # 1:有重叠,考虑邻近像素的对特征的影响
+    else:
+        raise ValueError("pool_format must in ('max' or 'avg')")
     return out
 
 #def flatten(x):
