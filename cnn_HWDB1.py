@@ -219,47 +219,69 @@ def batch_func(x, y, batch_size):
         y_batch = y[begin:end]
         yield x_batch, y_batch
 
+
+init = tf.global_variables_initializer()
+with tf.session() as sess:
+    sess.run(init)
+    saver = tf.train.Saver() # 生成saver
+    
+    loss_train_global = []
+    accu_train_global = []
+    loss_valid_global = []
+    accu_valid_global = []
+    batch_size = 4
+#    x_train.shape[0] // batch_size
+    for epoch in range(epochs):
+        loss_train_epoch = 0.0
+        accu_train_epoch = 0.0
+        loss_valid_epoch = 0.0
+        accu_valid_epoch = 0.0
+        # train
+        batch_sample = 0.0
+        for x_batch, y_batch in batch_func(x_train, y_train_ot, batch_size):
+            batch_sample += 1
+            _, loss_train, accu_train = sess.run([opti_obj, loss, accuracy], 
+                                                 feed_dict={x:x_batch, y:y_batch, keep_prob:1.0})
+            loss_train_epoch += loss_train
+            accu_train_epoch += accu_train
+        loss_train_epoch /= batch_sample
+        accu_train_epoch /= batch_sample
+        # lr
+        lr = sess.run(learning_rate)
+        # valid
+        loss_valid_epoch, accu_valid_epoch = sess.run([loss, accuracy],
+                                                      feed_dict={x:x_valid, y:y_valid_ot, keep_prob:1.0})
+        # append
+        loss_train_global.append(loss_train_epoch)
+        accu_train_global.append(accu_train_epoch)
+        loss_valid_global.append(loss_valid_epoch)
+        accu_valid_global.append(accu_valid_epoch)
+        print("epoch:%d, loss_train:%g, accu_train:%g, loss_valid:%g, accu_valid:%g" % \
+              (epoch, loss_train_epoch, accu_train_epoch, loss_valid_epoch, accu_valid_epoch))
+        print("learning_rate: %g" % lr)
+        # early_stopping
+        if loss_train_epoch < 0.1:
+            break
+        
+    probs_test, loss_test, accu_test = sess.run([probs,loss,accuracy], feed_dict={x:x_test, y:y_test_ot, keep_prob:1.0})
+    print("loss_test: %g, accu_test: %g" % (loss_test, accu_test))
+
+    df = pd.DataFrame({"loss_train": loss_train_global,
+                       "loss_valid": loss_valid_global,
+                       "loss_test": loss_test})
+    df.plot()
+    saver.save(sess, save_path="./model", global_step=0, write_meta_graph=True, write_state=True)
+
+# load
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True, allow_soft_placement=True))
 init = tf.global_variables_initializer()
 sess.run(init)
-saver = tf.train.Saver() # 生成saver
 
-loss_train_global = []
-accu_train_global = []
-loss_valid_global = []
-accu_valid_global = []
-batch_size = 4
-x_train.shape[0] // batch_size # batch_sample
-for epoch in range(epochs):
-    loss_train_epoch = 0.0
-    accu_train_epoch = 0.0
-    loss_valid_epoch = 0.0
-    accu_valid_epoch = 0.0
-    # train
-    batch_sample = 0.0
-    for x_batch, y_batch in batch_func(x_train, y_train_ot, batch_size):
-        batch_sample += 1
-        _, loss_train, accu_train = sess.run([opti_obj, loss, accuracy], 
-                                             feed_dict={x:x_batch, y:y_batch, keep_prob:1.0})
-        loss_train_epoch += loss_train
-        accu_train_epoch += accu_train
-    loss_train_epoch /= batch_sample
-    accu_train_epoch /= batch_sample
-    # lr
-    lr = sess.run(learning_rate)
-    # valid
-    loss_valid_epoch, accu_valid_epoch = sess.run([loss, accuracy],
-                                                  feed_dict={x:x_valid, y:y_valid_ot, keep_prob:1.0})
-    # append
-    loss_train_global.append(loss_train_epoch)
-    accu_train_global.append(accu_train_epoch)
-    loss_valid_global.append(loss_valid_epoch)
-    accu_valid_global.append(accu_valid_epoch)
-    print("epoch:%d, loss_train:%g, accu_train:%g, loss_valid:%g, accu_valid:%g" % \
-          (epoch, loss_train_epoch, accu_train_epoch, loss_valid_epoch, accu_valid_epoch))
-    print("learning_rate: %g" % lr)
-    # early_stopping
-    if loss_train_epoch < 0.1:
-        break
+saver = tf.train.Saver()
+path = tf.train.get_checkpoint_state("./")
+saver.restore(sess, path.model_checkpoint_path)
 
-
+probs_test, loss_test, accu_test = sess.run([probs,loss,accuracy], feed_dict={x:x_test, y:y_test, keep_prob:1.0})
+y_pred = np.argmax(probs_test, axis=1)
+y_test_new = np.argmax(y_test, axis=1)
+pd.crosstab(index=y_test_new, columns=y_pred, margins=True)
