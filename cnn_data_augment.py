@@ -101,17 +101,29 @@ def pic_crop(filename, init_range, crop_size):
 #    return pic_update.save(".\\shift_" + filename) # 保存
 
 # 颜色调整
-def pic_colorShift(filename):
+def pic_color(filename, range_from, range_to):
     pic = Image.open(filename, mode="r") # 载入图片
-    random_factor = np.random.randint(0, 31) / 10
+    random_factor = rd.uniform(range_from, range_to)
     pic_update = ImageEnhance.Color(pic).enhance(random_factor)  # 调整图像的饱和度
-    random_factor = np.random.randint(10, 21) / 10
-    pic_update = ImageEnhance.Brightness(pic_update).enhance(random_factor)  # 调整图像的亮度
-    random_factor = np.random.randint(10, 21) / 10
-    pic_update = ImageEnhance.Contrast(pic_update).enhance(random_factor)  # 调整图像对比度
-    random_factor = np.random.randint(0, 31) / 10
-    pic_update = ImageEnhance.Sharpness(pic_update).enhance(random_factor) # 调整图像锐度
-    return pic_update.save("./shift_" + filename) # 保存   
+    return pic_update.save("./color_" + filename) # 保存
+
+def pic_bright(filename, range_from=0.5, range_to=1.0):
+    pic = Image.open(filename, mode="r") # 载入图片
+    random_factor = rd.uniform(range_from, range_to)
+    pic_update = ImageEnhance.Brightness(pic).enhance(random_factor)  # 调整图像的亮度
+    return pic_update.save("./bright_" + filename) # 保存
+
+def pic_contrast(filename, range_from=0.5, range_to=5.0):
+    pic = Image.open(filename, mode="r") # 载入图片
+    random_factor = rd.uniform(range_from, range_to)
+    pic_update = ImageEnhance.Contrast(pic).enhance(random_factor)  # 调整图像对比度
+    return pic_update.save("./contrast_" + filename) # 保存
+
+def pic_sharpness(filename, range_from=0.1, range_to=3.0):
+    pic = Image.open(filename, mode="r") # 载入图片
+    random_factor = rd.uniform(range_from, range_to)
+    pic_update = ImageEnhance.Sharpness(pic).enhance(random_factor)  # 调整图像锐度
+    return pic_update.save("./sharpness_" + filename) # 保存
 
 # 高斯噪声
 def pic_gaussNois(filename, mean, std):
