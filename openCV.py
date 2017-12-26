@@ -55,7 +55,7 @@ cv.imwrite(".\\DSC07961_2.jpg", img2, [int(cv.IMWRITE_JPEG_QUALITY), 0])
 cv.imwrite(".\\DSC07961_2.jpg", img2, [int(cv.IMWRITE_JPEG_QUALITY), 100])
 
 # 通道分离
-R, G, B = img[:,:,2], img[:,:,1], img[:,:,0] # B, G, R = cv.split(img)
+R, G, B = img[:,:,2], img[:,:,1], img[:,:,0] # B, G, R = cv.split(img) r,g,b,a = cv2.split(hat_img) 
 cv.namedWindow("Image") 
 cv.imshow("Blue", R)
 cv.imshow("Red", G)
