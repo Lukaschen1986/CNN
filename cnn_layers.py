@@ -338,3 +338,10 @@ def batch_func(x, y, batch_size):
         x_batch = x[begin:end]
         y_batch = y[begin:end]
         yield x_batch, y_batch
+
+#sample_size = len(features)
+#for start_i in range(0, sample_size, batch_size):
+#    print(start_i)
+#    end_i = start_i + batch_size
+#    batch = [features[start_i:end_i], labels[start_i:end_i]]
+#    output_batches.append(batch)
